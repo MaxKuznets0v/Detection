@@ -27,12 +27,47 @@ def app():
                 continue
             img = cv2.imread(source_path, 1)
             temp = cv2.imread(template_path, 0)
+            best = 0
+            best_res = 0
+            cp = temp.copy()
+            for i in range(1, 100):
+                factor = 1 + 0.1 * i
+                cp = cv2.resize(temp, (int(temp.shape[1] * factor), int(temp.shape[0] * factor)))
+                try:
+                    res = cv2.matchTemplate(cv2.cvtColor(img, cv2.COLOR_RGB2GRAY), cp, cv2.TM_CCOEFF_NORMED)
+                except:
+                    break
+                min_val, max_val, min_loc, max_loc = cv2.minMaxLoc(res)
+                w, h = cp.shape[::-1]
+                bottom_right = (max_loc[0] + w, max_loc[1] + h)
+                if max_val > best:
+                    best = max_val
+                    best_res = max_loc
+                    best_right = (max_loc[0] + w, max_loc[1] + h)
+            cnt = 0
+            for i in range(1, 100):
+                factor = 1 - 0.1 * i
+                try:
+                    cp = cv2.resize(temp, (int(temp.shape[1] * factor), int(temp.shape[0] * factor)))
+                    res = cv2.matchTemplate(cv2.cvtColor(img, cv2.COLOR_RGB2GRAY), cp, cv2.TM_CCOEFF_NORMED)
+                except:
+                    break
+                min_val, max_val, min_loc, max_loc = cv2.minMaxLoc(res)
+                w, h = cp.shape[::-1]
+                bottom_right = (max_loc[0] + w, max_loc[1] + h)
+                if max_val > best:
+                    cnt = 0
+                    best = max_val
+                    best_res = max_loc
+                    best_right = (max_loc[0] + w, max_loc[1] + h)
+                else:
+                    cnt += 1
+                    if cnt > 2:
+                        break
             w, h = temp.shape[::-1]
-            res = cv2.matchTemplate(cv2.cvtColor(img, cv2.COLOR_RGB2GRAY), temp, cv2.TM_CCOEFF_NORMED)
-            min_val, max_val, min_loc, max_loc = cv2.minMaxLoc(res)
-            top_left = max_loc
+            top_left = best_res
             bottom_right = (top_left[0] + w, top_left[1] + h)
-            cv2.rectangle(img, top_left, bottom_right, (0, 255, 0), 3)
+            cv2.rectangle(img, top_left, best_right, (0, 255, 0), 3)
 
             res = Image.fromarray(cv2.cvtColor(img, cv2.COLOR_BGR2RGB))
             res.thumbnail((600, 600))
