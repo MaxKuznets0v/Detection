@@ -32,14 +32,11 @@ class Method(metaclass=ABCMeta):
         return guess, best_diff, best_im
 
     def compare(self, one, another):
-        res = 0
-        for i in range(len(one)):
-            res += (int(one[i]) - int(another[i]))**2
-        return res**(1 / 2)
+        return (np.square(np.array(one) - np.array(another))).mean(axis=None)
 
 
 class Histogram(Method):
-    def __init__(self, collection, bin_size=32):
+    def __init__(self, collection, bin_size=20):
         self.bin_size = bin_size
         super().__init__(collection)
 
@@ -53,7 +50,7 @@ class Histogram(Method):
 
 
 class DFT(Method):
-    def __init__(self, collection, p=10):
+    def __init__(self, collection, p=9):
         self.p = p
         super().__init__(collection)
 
@@ -71,7 +68,7 @@ class DFT(Method):
 
 
 class DCT(Method):
-    def __init__(self, collection, p=16):
+    def __init__(self, collection, p=15):
         self.p = p
         super().__init__(collection)
 
@@ -89,15 +86,13 @@ class DCT(Method):
 
 
 class Scale(Method):
-    def __init__(self, collection, size=(14, 12)):
+    def __init__(self, collection, size=(20, 18)):
         self.size = size
         super().__init__(collection)
 
     def extractor(self, image, vec=True):
         img = cv2.resize(image, self.size)
         if vec:
-            # cv2.imshow('s', img)
-            # cv2.waitKey()
             img = img.ravel()
         return img
 
@@ -111,26 +106,9 @@ class Gradient(Method):
     def extractor(self, image):
         res = list()
         for s in range(0, image.shape[0] - 2 * self.width, self.step):
-            # im = image.copy()
-            # cv2.rectangle(im, (s, 0), (s + self.width, im.shape[0]), (255, 0, 0))
-            # cv2.rectangle(im, (s + self.width, 0), (s + 2 * self.width, im.shape[0]), (255, 0, 0))
-            # cv2.imshow('s', im)
-            # cv2.waitKey()
-            # im = image.copy()
-            # cv2.rectangle(im, (0, s), (im.shape[1], s + self.width), (255, 0, 0))
-            # cv2.rectangle(im, (0, s + self.width), (im.shape[1], s + 2 * self.width), (255, 0, 0))
-            # cv2.imshow('s', im)
-            # cv2.waitKey()
             upper = image[s:s+self.width, :]
             lower = image[s + self.width:s + 2 * self.width, :]
-            # cv2.imshow('s', upper)
-            # cv2.waitKey()
-            # cv2.imshow('s', lower)
-            # cv2.waitKey()
-            # upper = image[:, s:s + self.width]
-            # lower = image[:, s + self.width:s + 2 * self.width]
             res.append(np.sum(np.power(upper-lower, 2))**(1/2))
-            #res.append(self.compare(lower.ravel(), upper.ravel()))
         return res
 
 
@@ -167,23 +145,3 @@ def build_collection(full, num=5):
         if add:
             test.append(elem)
     return collection, test
-
-
-# import matplotlib.pyplot as plt
-# collection, test = build_collection(build_targets('ORL'), 5)
-# it = 10
-# accuracies = list()
-# for p in range(1, 31):
-#     predictor = DCT(collection, p)
-#     acc = 0
-#     for i in range(it):
-#         count = 0
-#         for elem in test:
-#             guess, *_ = predictor.predict(elem[0])
-#             if guess == elem[1]:
-#                 count += 1
-#         acc += count / len(test)
-#     print(f"Param: {p} accuracy = {acc / it}")
-#     accuracies.append(acc / it)
-# plt.plot(range(1, 31), accuracies)
-# plt.show()
